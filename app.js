@@ -316,11 +316,13 @@ async function ensureProfile() {
 
 async function generateUniqueUsername() {
     const colors = ['amber', 'azure', 'blue', 'coral', 'cyan', 'gold', 'indigo', 'mint', 'pink', 'purple', 'rose', 'teal'];
-    const animals = ['otter', 'fox', 'raven', 'lynx', 'wolf', 'tiger', 'panda', 'koala', 'orca', 'heron', 'eagle', 'gecko'];
+    const animals = ['otter', 'swan', 'fox', 'raven', 'lynx', 'wolf', 'tiger', 'panda', 'koala', 'orca', 'heron', 'eagle', 'gecko'];
     const base = `${colors[Math.floor(Math.random() * colors.length)]}-${animals[Math.floor(Math.random() * animals.length)]}`;
-    const { data } = await supabase.from('profiles').select('username').eq('username', base).maybeSingle();
-    if (!data) return base;
-    return `${base}-${Math.floor(Math.random() * 1000)}`;
+    const suffix = Math.floor(Math.random() * 100000);
+    const candidate = `${base}-${suffix}`;
+    const { data } = await supabase.from('profiles').select('username').eq('username', candidate).maybeSingle();
+    if (!data) return candidate;
+    return `${base}-${Math.floor(Math.random() * 10000)}`;
 }
 
 async function loadLeaderboard() {
