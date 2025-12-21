@@ -64,6 +64,10 @@ const authStatus = document.getElementById('auth-status');
 const authIndicator = document.getElementById('auth-indicator');
 const authMenu = document.getElementById('auth-menu');
 const authPanel = document.getElementById('auth-panel');
+const leaderboardList = document.getElementById('leaderboard-list');
+const leaderboardToggle = document.getElementById('leaderboard-toggle');
+const leaderboardModal = document.getElementById('leaderboard-modal');
+const leaderboardClose = document.getElementById('leaderboard-close');
 
 const cardTextFallback = 'Problem text coming soon. Edit cardTextMap in app.js to update.';
 const cardTextMap = {
@@ -98,6 +102,7 @@ async function init() {
     await loadProgress();
     createCarousel();
     updateStats();
+    await loadLeaderboard();
     setupEventListeners();
 }
 
@@ -242,12 +247,15 @@ async function setupAuth() {
     const { data } = await supabase.auth.getSession();
     currentUser = data.session ? data.session.user : null;
     updateAuthUI();
+    await ensureProfile();
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
         currentUser = session ? session.user : null;
         updateAuthUI();
+        await ensureProfile();
         await loadProgress();
         refreshSolvedUI();
+        await loadLeaderboard();
     });
 }
 
@@ -271,6 +279,73 @@ function updateAuthUI() {
         authSignIn.disabled = false;
         authSignOut.disabled = true;
     }
+}
+
+async function ensureProfile() {
+    if (!currentUser) return;
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    if (error) {
+        authStatus.textContent = `Profile error: ${error.message}`;
+        return;
+    }
+
+    if (data && data.username) {
+        authIndicator.querySelector('.text').textContent = data.username;
+        return;
+    }
+
+    const username = await generateUniqueUsername();
+    const { error: insertError } = await supabase.from('profiles').insert({
+        user_id: currentUser.id,
+        username
+    });
+
+    if (insertError) {
+        authStatus.textContent = `Username error: ${insertError.message}`;
+        return;
+    }
+
+    authIndicator.querySelector('.text').textContent = username;
+}
+
+async function generateUniqueUsername() {
+    const colors = ['amber', 'azure', 'blue', 'coral', 'cyan', 'gold', 'indigo', 'mint', 'pink', 'purple', 'rose', 'teal'];
+    const animals = ['otter', 'fox', 'raven', 'lynx', 'wolf', 'tiger', 'panda', 'koala', 'orca', 'heron', 'eagle', 'gecko'];
+    const base = `${colors[Math.floor(Math.random() * colors.length)]}-${animals[Math.floor(Math.random() * animals.length)]}`;
+    const { data } = await supabase.from('profiles').select('username').eq('username', base).maybeSingle();
+    if (!data) return base;
+    return `${base}-${Math.floor(Math.random() * 1000)}`;
+}
+
+async function loadLeaderboard() {
+    if (!leaderboardList) return;
+    const { data, error } = await supabase
+        .from('leaderboard')
+        .select('username, solved_count')
+        .limit(100);
+
+    if (error) {
+        authStatus.textContent = `Leaderboard error: ${error.message}`;
+        return;
+    }
+
+    leaderboardList.innerHTML = '';
+    (data || []).forEach((row, idx) => {
+        const item = document.createElement('li');
+        item.className = 'leaderboard-item';
+        item.innerHTML = `
+            <span class="rank">#${idx + 1}</span>
+            <span class="name">${row.username}</span>
+            <span class="score">${row.solved_count}</span>
+        `;
+        leaderboardList.appendChild(item);
+    });
 }
 
 async function signUp() {
@@ -336,6 +411,7 @@ async function saveSolvedCard(cardId) {
     if (error) {
         authStatus.textContent = `Save error: ${error.message}`;
     }
+    await loadLeaderboard();
 }
 
 function refreshSolvedUI() {
@@ -402,6 +478,18 @@ function setupEventListeners() {
     });
     authPanel.addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', () => authMenu.classList.remove('open'));
+
+    leaderboardToggle.addEventListener('click', () => {
+        leaderboardModal.classList.add('open');
+    });
+    leaderboardClose.addEventListener('click', () => {
+        leaderboardModal.classList.remove('open');
+    });
+    leaderboardModal.addEventListener('click', (e) => {
+        if (e.target === leaderboardModal) {
+            leaderboardModal.classList.remove('open');
+        }
+    });
 
     // Close problem display when clicking outside (kept disabled for now)
 }

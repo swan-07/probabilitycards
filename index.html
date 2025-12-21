@@ -46,6 +46,7 @@
                         <span class="count" id="spades-count">0</span>
                     </div>
                 </div>
+                <button class="leaderboard-toggle" id="leaderboard-toggle" type="button">Leaderboard</button>
                 <div class="auth-menu" id="auth-menu">
                     <button class="auth-indicator" id="auth-indicator" type="button">
                         <span class="dot"></span>
@@ -110,13 +111,6 @@
                     <div id="feedback" class="feedback"></div>
                 </div>
 
-                <div class="leaderboard" id="leaderboard">
-                    <div class="leaderboard-header">
-                        <h3>Global Leaderboard</h3>
-                        <span class="leaderboard-sub">Top 100</span>
-                    </div>
-                    <ol class="leaderboard-list" id="leaderboard-list"></ol>
-                </div>
             </div>
         </div>
 
@@ -135,6 +129,17 @@
     <div class="credits">
         Cards by <a href="https://www.janestreet.com/probability-playing-cards/" target="_blank">Jane Street</a> •
         Design by <a href="https://www.playbalatro.com/" target="_blank">Balatro</a>
+    </div>
+
+    <div class="leaderboard-modal" id="leaderboard-modal" aria-hidden="true">
+        <div class="leaderboard-modal-content">
+            <div class="leaderboard-header">
+                <h3>Global Leaderboard</h3>
+                <span class="leaderboard-sub">Top 100</span>
+                <button class="leaderboard-close" id="leaderboard-close" type="button">Close</button>
+            </div>
+            <ol class="leaderboard-list" id="leaderboard-list"></ol>
+        </div>
     </div>
 
     <script type="module" src="app.js"></script>
