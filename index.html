@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jane Street Probability Cards - Balatro Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Light flash transition -->
+    <div class="light-flash" id="light-flash"></div>
+
+    <!-- 3D Rotating Deck Intro -->
+    <div id="intro-screen" class="intro-screen">
+        <div class="deck-3d">
+            <div class="deck-stack"></div>
+        </div>
+        <button class="start-button">BEGIN</button>
+    </div>
+
+    <!-- Main Game Screen -->
+    <div id="main-screen" class="main-screen" style="display: none;">
+        <!-- Top Bar with Stats -->
+        <div class="top-bar">
+            <h1>Jane Street Probability Deck</h1>
+            <div class="right-controls">
+                <div class="stat-badge">
+                    <span class="label">Solved:</span>
+                    <span class="value" id="solved-count">0/52</span>
+                </div>
+                <div class="suit-badges">
+                    <div class="suit-badge">
+                        <img src="assets/suit_clubs.png" alt="Clubs">
+                        <span class="count" id="clubs-count">0</span>
+                    </div>
+                    <div class="suit-badge">
+                        <img src="assets/suit_diamonds.png" alt="Diamonds">
+                        <span class="count" id="diamonds-count">0</span>
+                    </div>
+                    <div class="suit-badge">
+                        <img src="assets/suit_hearts.png" alt="Hearts">
+                        <span class="count" id="hearts-count">0</span>
+                    </div>
+                    <div class="suit-badge">
+                        <img src="assets/suit_spades.png" alt="Spades">
+                        <span class="count" id="spades-count">0</span>
+                    </div>
+                </div>
+                <div class="auth-menu" id="auth-menu">
+                    <button class="auth-indicator" id="auth-indicator" type="button">
+                        <span class="dot"></span>
+                        <span class="text">Signed out</span>
+                    </button>
+                    <div class="auth-panel" id="auth-panel">
+                        <input type="email" id="auth-email" placeholder="you@example.com">
+                        <input type="password" id="auth-password" placeholder="password">
+                        <button id="auth-sign-up" class="auth-btn">Sign up</button>
+                        <button id="auth-sign-in" class="auth-btn">Sign in</button>
+                        <button id="auth-sign-out" class="auth-btn auth-btn-secondary">Sign out</button>
+                        <div id="auth-status" class="auth-status">Signed out</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="content">
+            <div class="info-section">
+                <!-- Default content -->
+                <div id="conventions-content" class="conventions-content">
+                    <h2>Conventions</h2>
+                    <div class="conventions-text">
+                        As you get started with the deck, here is some information about conventions the deck follows.
+                        <br><br>
+                        Each suit explores a different, exciting area of probability. Problem difficulty varies wildly!
+                        Very roughly, the problems increase in difficulty from A → K. Some problems are VERY hard
+                        (indicated on the card with [*]) and some no one in the world has solved yet (indicated via [**]).
+                        <br><br>
+                        Most problems in this deck are far more difficult than anything you need to be able to solve to work at Jane Street.
+                        For interview preparation, we recommend the first 5-6 questions in ♣ and ♦. The rest are just for fun!
+                    </div>
+                    <div class="conventions-list">
+                        <div class="convention-item clubs">
+                            <span class="suit">♣</span>
+                            <span>Expectation and linearity</span>
+                        </div>
+                        <div class="convention-item diamonds">
+                            <span class="suit">♦</span>
+                            <span>Classical and conditional probability</span>
+                        </div>
+                        <div class="convention-item hearts">
+                            <span class="suit">♥</span>
+                            <span>Geometric probability</span>
+                        </div>
+                        <div class="convention-item spades">
+                            <span class="suit">♠</span>
+                            <span>Random walks and martingales</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Problem content (shown when card selected) -->
+                <div id="problem-content" class="problem-content">
+                    <h3 id="card-name"></h3>
+                    <div id="problem-text" class="problem-text"></div>
+                    <div class="answer-section">
+                        <input type="text" id="answer-input" placeholder="Your answer...">
+                        <button id="submit-btn" class="submit-btn">Submit</button>
+                    </div>
+                    <div id="feedback" class="feedback"></div>
+                </div>
+
+                <div class="leaderboard" id="leaderboard">
+                    <div class="leaderboard-header">
+                        <h3>Global Leaderboard</h3>
+                        <span class="leaderboard-sub">Top 100</span>
+                    </div>
+                    <ol class="leaderboard-list" id="leaderboard-list"></ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Card Carousel -->
+        <div class="card-carousel">
+            <div class="carousel-container">
+                <div class="deck-button" id="deck-button">
+                    <img src="cards/card_back.png" alt="Deck">
+                </div>
+                <div class="carousel-track" id="carousel-track"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credits -->
+    <div class="credits">
+        Cards by <a href="https://www.janestreet.com/probability-playing-cards/" target="_blank">Jane Street</a> •
+        Design by <a href="https://www.playbalatro.com/" target="_blank">Balatro</a>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
