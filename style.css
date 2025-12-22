@@ -754,6 +754,7 @@ body::before {
     overflow: hidden;
     background: white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transform-origin: center bottom;
 }
 
 .carousel-card img {

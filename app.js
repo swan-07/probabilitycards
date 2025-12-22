@@ -1,32 +1,7 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
 const SUPABASE_URL = 'https://nnywsuzykhwyjfdstqsg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_KUY77BTJjoTBP1SGAuPBlw_3Jexd4in';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Problem card image mapping (from cardimages photos - IMG_6316 onwards are the problem cards)
-const problemImageMap = {
-    'clubs': {
-        'A': 'IMG_6316', '2': 'IMG_6317', '3': 'IMG_6318', '4': 'IMG_6319',
-        '5': 'IMG_6320', '6': 'IMG_6321', '7': 'IMG_6322', '8': 'IMG_6323',
-        '9': 'IMG_6324', '10': 'IMG_6325', 'J': 'IMG_6326', 'Q': 'IMG_6327', 'K': 'IMG_6328'
-    },
-    'diamonds': {
-        'A': 'IMG_6329', '2': 'IMG_6330', '3': 'IMG_6331', '4': 'IMG_6332',
-        '5': 'IMG_6333', '6': 'IMG_6334', '7': 'IMG_6335', '8': 'IMG_6336',
-        '9': 'IMG_6337', '10': 'IMG_6338', 'J': 'IMG_6339', 'Q': 'IMG_6340', 'K': 'IMG_6341'
-    },
-    'hearts': {
-        'A': 'IMG_6342', '2': 'IMG_6343', '3': 'IMG_6344', '4': 'IMG_6345',
-        '5': 'IMG_6346', '6': 'IMG_6347', '7': 'IMG_6348', '8': 'IMG_6349',
-        '9': 'IMG_6350', '10': 'IMG_6351', 'J': 'IMG_6352', 'Q': 'IMG_6353', 'K': 'IMG_6354'
-    },
-    'spades': {
-        'A': 'IMG_6355', '2': 'IMG_6356', '3': 'IMG_6357', '4': 'IMG_6358',
-        '5': 'IMG_6359', '6': 'IMG_6360', '7': 'IMG_6361', '8': 'IMG_6362',
-        '9': 'IMG_6363', '10': 'IMG_6364', 'J': 'IMG_6365', 'Q': 'IMG_6366', 'K': 'IMG_6367'
-    }
-};
+let supabase = null;
+let supabaseAvailable = false;
 
 const suitSymbols = {
     'clubs': '♣',
@@ -40,6 +15,7 @@ let solvedCards = new Set();
 let currentCard = null;
 let carouselExpanded = false;
 let currentUser = null;
+let currentUsername = null;
 
 // DOM Elements
 const introScreen = document.getElementById('intro-screen');
@@ -69,24 +45,65 @@ const leaderboardToggle = document.getElementById('leaderboard-toggle');
 const leaderboardModal = document.getElementById('leaderboard-modal');
 const leaderboardClose = document.getElementById('leaderboard-close');
 
-const cardTextFallback = 'Problem text coming soon. Edit cardTextMap in app.js to update.';
+const cardTextFallback = 'Problem text coming soon!';
 const cardTextMap = {
     clubs: {
-        A: 'Two crabs are facing each other on the beach. Each second they randomly walk one step to the right or one step to the left (independently). After 6 seconds, what is the chance they are still across from each other?',
-        '2': 'A standard deck of cards is shuffled. On average, how many cards will you have to draw until you draw the A♣? Try answering this question assuming you draw with replacement and then assuming you draw without replacement.'
+        A: 'What is the expected value of a randomly drawn card from a standard deck? If you draw two cards randomly, what is the expected value of their sum? (A = 1, J = 11, Q = 12, K = 13) Answer in the form (X, Y)',
+        '2': 'A standard deck of cards is shuffled. On average, how many cards will you have to draw until you draw the Ace of Clubs? Try answering this question assuming you draw with replacement and then assuming you draw without replacement. Answer in the form (X, Y)',
+        '3': '20 people are each holding a playing card. These cards are all shuffled and redistributed randomly. What is the expected number of people who get their original card back?',
+        '4': '10 people are sitting in a circle. Each has their own deck of cards. They each shuffle their deck and draw a random card. If the card is red, the holder turns to shake hands with the player to their left. If the card is black, they turn to shake hands with the person to their right. How many handshakes are expected to succeed?',
+        '5': 'While inserting two jokers into a deck of cards, we unfortunately drop the 5 of clubs on the floor. We then shuffle the deck. What\'s the expected number of cards between the two jokers?',
+        '6': 'You have a pile of a very, very large number of cards (equal numbers of each suit). How many cards on average do you have to draw before you have at least one card of each suit?',
+        '7': 'While showing off a fancy shuffling trick, you accidentally drop almost half the deck down a storm drain. You want to figure out which cards you still have, so you try to match up cards with the same rank and color (A of spades with A of clubs for example). You count 34 cards remaining. How many matches do you find on average?',
+        '8': 'Arrange the 13 clubs in random order. How many times do you expect the sequence to change direction (increasing to decreasing or vice versa)?',
+        '9': 'A very large deck of 2N+1 cards is cut at one of its 2N gaps randomly. As a function of N, on average how many cards are in the smaller pile? What is the expected ratio of the size of the larger pile to the smaller pile? Answer in the form (X, Y)',
+        '10': 'Draw cards from a shuffled deck until you draw the J, Q, and K of clubs. How many draws will it take on average?',
+        'J': 'We have 2N cards: 1 through N of both clubs and spades. Remove the 1 of clubs and a random space. Remove a pair of cards: the 2 of clubs and an associated spade (the 2 of spades if you can find it, or else a random spade). Continue similarly (with the 3 of clubs, 4 of clubs, etc) until all cards are paired and removed. What\'s the chance the N of clubs and the N of spades form a pair? On average, how many pairs have matching rank? Answer in the form (X, Y)'
     },
     diamonds: {
-        A: 'Two planes are getting ready for takeoff, traveling down a long runway at 60mph and 180mph respectively. They both stop suddenly and independently after 0–60s (uniformly at random). What is the chance that the sum of the distances traveled is at most a mile?'
+        A: 'A standard deck of cards is shuffled. What is the chance that the third card from the top is either a diamond or an ace?',
+        '2': 'If you draw 13 random cards from a standard deck, what is the chance that they are all the same suit?',
+        '3': 'We shuffle a deck of cards and I deal you the 3, 4, and 5 of diamonds. I look at the next card and tell you that it is between 3 and 8 (inclusive). How likely is it that the card is a diamond?',
+        '4': 'The 2, 3, and 4 of diamonds are face-down in random order. You want to select the 4 of diamonds. You point to the leftmost card. A gust of wind blows, flipping the rightmost card and revealing that it is the 2 of diamonds. Do you want to switch your choice from the leftmost to the middle? Answer YES or NO',
+        '5': 'I have all 13 diamonds. We both want to end the game with the 5 of diamonds. You randomly select one of my cards but cannot look at it. I lok at my cards and then place 11 face up. The 5 of diamonds is not among them. Should you trade the card you initially chose for my remaining card? What is the chance you find the 5 of diamonds if so? Answer in the form (YES or NO, A)',
+        '6': 'You are given a deck of cards that is equally likely to either be perfectly shuffled or brand new (i.e. ordered A-K of diamonds, A-K of spades, etc). You draw the top 3 cards and they are the A, 2, and 3 of diamonds in that order. How much more likely is the deck to be brand new vs. shuffled?',
+        '7': 'You are holding a random card from a standard deck. If you have a diamond, you truthfully answer questions 90% of the time and lie 10% of the time. If you don\'t have a diamond, you truthfully answer questions 40% of the time and lie 60% of the time. I ask "Do you have a diamond?" and you answer "Yes." What is the chance that you have a diamond?',
+        '8': 'We are playing with a standard deck. I remove one diamond and some non-diamonds but I don\t tell you how many! I secretly flip a fair coin; on heads I return the missing diamond, on tails I return one of the other missing cards. You shuffle the deck and draw one card; it\'s a diamond. What\'s the probability my coin came up heads?',
+        '9': 'Which of these events is more likely assuming cards are drawn from a shuffled deck with replacement: (a) at least 1 diamond when 4 cards are drawn, (b) at least 2 diamonds when 8 cards are drawn, or (c) at least 3 diamonds when 12 cards are drawn? Answer a/b/c',
+        '10': 'You have two strange decks of cards: deck A with 2 diamonds and 1 spade and deck B with 51 diamonds and 50 spades. You randomly choose a deck and draw. You can look at the color of the card, put it back in the deck (or not) and draw a second card. Your goal is to guess what deck you are drawing from. What strategy do you employ and how likely is it to succeed? (Answers may vary)',
+        J: 'Consider the following game: place the A-6 of diamonds and the A-6 of spades in a bag. You randomly draw cards one at a time from the bag and keep them, but put matching cards aside as son as they appear in your hand. The game ends and you lose if you ever hold three cards, no two of which match. What is the chance you win?'
+    },
+    hearts: {
+        A: 'A tiny model airplane has gotten stuck inside an inflatable, spherical beach ball of radius 1 and is flying around randomly. When you stop and look, what is the probability that the plane is closer to the center of the ball than to the outside?',
+        '2': 'Two planes are getting ready for takeoff, traveling down a long runway at 60mph and 180mph respectively. They both stop suddenly (and independently) after 0-60s (uniformly at random). What is the chance that the sum of the distances traveled is at most a mile?',
+        '3': 'Two cyclists are randomly biking around the unit circle. They each stop at uniformly random spots along the boundary. Form a triangle from the two cyclists and the circle\'s center. How likely is the triangle to be acute? What if they had been biking along the surface of a unit sphere? Answer in the form (X, Y)',
+        '4': 'A round helicopter of diameter 3 is trying to land. Its landing zone is covered in painted lines which form a grid of 4x4 squares. The helicopter is supposed to land fully within a square, but the pilot did not pay attention and landed randomly. What is the chance that the helicopter falls within a square nonetheless?',
+        '5': 'A circular zamboni (of radius 1) was driving around a rectangular ice rink of length l and width w. The zamboni broke down at a uniformly random point on the rink. What is the chance that it stopped over either of the two diagonals of the rink?',
+        '6': 'Every morning, two friends independently bike to a cafe, arriving at a uniformly random time between 7am and 8am. Each person waits for t minutes in the parking lot, hoping their friend will join in time. If not, they leave coffeeless (they cannot carry it on their bike!). If they are 36% likely to get their morning caffeine, what is t?',
+        '7': 'N cyclists are biking around a circular track at a rate of 1 rpm. They start in uniformly random locations and random orientations (clockwise or counter). Just before a pair would collide, they instantly reverse direction. What is the expected number of times all the cyclists reverse direction each minute?',
+        '8': 'N cyclists are biking around a circular track at a rate of 1 rpm. They start in uniformly random locations and random orientations (clockwise or counter). Just before a pair would collide, they instantly reverse direction. What is the probability that after 1 minute, all cyclists are where they started?',
+        '9': 'Cars of length 2 are parking on a street of length 100, with parking meters evenly spaced every length 1. Each minute, a car arrives and parks at a uniformly randomly open spot, aligning its front bumper with a parking meter. When no more cars can possible fit, roughly what fraction of parking meters are unoccupied by a car?',
+        '10': 'Cars of length 2 are parking on a street of length 100. Each minute, a car arrives and parks at a uniformly random spot on the road without crashing into another car or running off the road. When no more cars can possibly fit, roughly how many cars have parked?'
+    },
+    spades: {
+        A: 'Two crabs are facing each other on the beach. Each second they randomly walk one step to the right or one step to the left (independently). After 6 seconds, what is the chance they are still across from each other?',
+        '2': 'A bee left some honeycomb on the ground and now a very long trail of red and black ants (in random order) has formed. Which is more likely to appear first in the trail, two black ants in a row (BB) or a red ant followed by a black ant (RB)? How many ants does it take on average to see BB or RB? What about BBR? Answer in the form (AA, X, Y)',
+        '3': 'A turtle is staring out at the horizon, one step away from the ocean. The turtle takes random steps, with probability 2/3 back toward the top of the beach and with probability 1/3 toward the ocean. What\'s the chance the turtle ever makes it to the ocean?',
+        '4': 'A bunny cannot decide where to take a nap. There is a rose bush 4 steps to the left and sunflowers 8 steps to the right. The bunny is 25% to step toward the roses and 75% to step towards the sunflowers. How many steps (on average) does it take until the bunny can get some rest?',
+        '5': 'A beaver is looking for materials for her dam. There is a long mountain and a long river 20 steps apart (and parallel). The beaver randomly steps N, S, E, W on her search (if a step would take her up the mountain, she steps toward the river instead). If she is at the mountain, how many steps can she expect it to take to return to the river?',
+        '6': 'A chipmunk is stuffing its mouth full of acorns. Right now, it has 6. Every second, with probability 2/3, it stuffs another in its mouth, otherwise it drops one. The chipmunk continues until either its mouth is full (it can hold 36 acorns!) or empty. How likely is the chipmunk to leave hungry?',
+        '7': 'A crow and a raven are each picking up coins off the street at the same pace. They are clever and keep track of who has picked up more coins that were facing heads rather than tails after each coin. They each collect N in total. What is the chance they never had collected the same number of heads after they started?',
+        '8': 'B blue jays and C cardinals are sitting together in a tree. The birds all politely take turns flying away (meaning that the bird that flew away was equally likely to be any of the remaining birds). What is the chance that at some point the same number of blue jays as cardinals have flown away?',
+        '9': 'Two monkeys are playing a variant of war with a deck of 2N cards numbered 1 to 2N. Each monkey started with N random cards and every turn, both monkeys select a random card from their hand. The monkey with the higher card wins both cards. The game ends when only one monkey has cards. How many turns does the game take on average?',
+        '10': 'A confused antelope is looking for food and each second takes a random step equally likely to be N, S, E, or W. What is the probability that the antelope ever makes it back to where it started?',
+        J: "* A hawk is flying around in 3D space. Don't worry–it is not bound by silly rules like gravity and can burrow deep into the ground. Every moment, it takes a step in the horizontal, vertical, or forward/backward direction. What is the probability the hawk eventually returns to the tree where it started?"
     }
 };
 
 const answerMap = {
     clubs: {
-        A: '0',
-        '2': '0'
     },
     diamonds: {
-        A: '0'
     },
     hearts: {},
     spades: {}
@@ -98,12 +115,28 @@ function getCardText(suit, rank) {
 
 // Initialize
 async function init() {
-    await setupAuth();
+    await setupSupabase();
+    if (supabaseAvailable) {
+        await setupAuth();
+    } else {
+        updateAuthUI();
+    }
     await loadProgress();
     createCarousel();
     updateStats();
     await loadLeaderboard();
     setupEventListeners();
+}
+
+async function setupSupabase() {
+    try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        supabase = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseAvailable = true;
+    } catch (_err) {
+        supabase = null;
+        supabaseAvailable = false;
+    }
 }
 
 // Load progress from localStorage
@@ -244,6 +277,7 @@ function updateStats() {
 }
 
 async function setupAuth() {
+    if (!supabaseAvailable) return;
     const { data } = await supabase.auth.getSession();
     currentUser = data.session ? data.session.user : null;
     updateAuthUI();
@@ -251,6 +285,7 @@ async function setupAuth() {
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
         currentUser = session ? session.user : null;
+        currentUsername = null;
         updateAuthUI();
         await ensureProfile();
         await loadProgress();
@@ -260,10 +295,22 @@ async function setupAuth() {
 }
 
 function updateAuthUI() {
+    if (!supabaseAvailable) {
+        authStatus.textContent = 'Offline mode';
+        authIndicator.classList.remove('signed-in');
+        authIndicator.querySelector('.text').textContent = 'Offline';
+        authEmail.disabled = true;
+        authPassword.disabled = true;
+        authSignUp.disabled = true;
+        authSignIn.disabled = true;
+        authSignOut.disabled = true;
+        return;
+    }
+
     if (currentUser) {
         authStatus.textContent = `Signed in: ${currentUser.email || 'user'}`;
         authIndicator.classList.add('signed-in');
-        authIndicator.querySelector('.text').textContent = 'Signed in';
+        authIndicator.querySelector('.text').textContent = currentUsername || 'Signed in';
         authEmail.disabled = true;
         authPassword.disabled = true;
         authSignUp.disabled = true;
@@ -282,7 +329,7 @@ function updateAuthUI() {
 }
 
 async function ensureProfile() {
-    if (!currentUser) return;
+    if (!currentUser || !supabaseAvailable) return;
 
     const { data, error } = await supabase
         .from('profiles')
@@ -296,6 +343,7 @@ async function ensureProfile() {
     }
 
     if (data && data.username) {
+        currentUsername = data.username;
         authIndicator.querySelector('.text').textContent = data.username;
         return;
     }
@@ -311,10 +359,12 @@ async function ensureProfile() {
         return;
     }
 
+    currentUsername = username;
     authIndicator.querySelector('.text').textContent = username;
 }
 
 async function generateUniqueUsername() {
+    if (!supabaseAvailable) return 'offline-user';
     const colors = ['amber', 'azure', 'blue', 'coral', 'cyan', 'gold', 'indigo', 'mint', 'pink', 'purple', 'rose', 'teal'];
     const animals = ['otter', 'swan', 'fox', 'raven', 'lynx', 'wolf', 'tiger', 'panda', 'koala', 'orca', 'heron', 'eagle', 'gecko'];
     const base = `${colors[Math.floor(Math.random() * colors.length)]}-${animals[Math.floor(Math.random() * animals.length)]}`;
@@ -326,10 +376,12 @@ async function generateUniqueUsername() {
 }
 
 async function loadLeaderboard() {
-    if (!leaderboardList) return;
+    if (!leaderboardList || !supabaseAvailable) return;
     const { data, error } = await supabase
         .from('leaderboard')
         .select('username, solved_count')
+        .order('solved_count', { ascending: false })
+        .order('username', { ascending: true })
         .limit(100);
 
     if (error) {
@@ -351,6 +403,10 @@ async function loadLeaderboard() {
 }
 
 async function signUp() {
+    if (!supabaseAvailable) {
+        authStatus.textContent = 'Offline mode';
+        return;
+    }
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
     if (!email || !password) {
@@ -368,6 +424,10 @@ async function signUp() {
 }
 
 async function signIn() {
+    if (!supabaseAvailable) {
+        authStatus.textContent = 'Offline mode';
+        return;
+    }
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
     if (!email || !password) {
@@ -385,10 +445,12 @@ async function signIn() {
 }
 
 async function signOut() {
+    if (!supabaseAvailable) return;
     await supabase.auth.signOut();
 }
 
 async function loadProgressFromSupabase() {
+    if (!supabaseAvailable) return;
     const { data, error } = await supabase
         .from('solved_cards')
         .select('card_id')
@@ -403,7 +465,7 @@ async function loadProgressFromSupabase() {
 }
 
 async function saveSolvedCard(cardId) {
-    if (!currentUser) return;
+    if (!currentUser || !supabaseAvailable) return;
     const { error } = await supabase.from('solved_cards').upsert({
         user_id: currentUser.id,
         card_id: cardId,
@@ -452,14 +514,6 @@ function setupEventListeners() {
     });
 
     // Click outside carousel to collapse (optional)
-    document.addEventListener('click', (e) => {
-        if (carouselExpanded &&
-            !carouselTrack.contains(e.target) &&
-            !deckButton.contains(e.target) &&
-            !problemDisplay.contains(e.target)) {
-            // Don't collapse for now - keep it expanded for better UX
-        }
-    });
 
     // Submit button
     submitBtn.addEventListener('click', submitAnswer);
